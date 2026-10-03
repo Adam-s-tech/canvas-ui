@@ -1,3 +1,4 @@
+import { prepareHtmlInCanvas, drawHtmlInCanvas } from "../html-in-canvas";
 import { createRectCache } from "../rect-cache";
 
 export type PeelSide = "left" | "right" | "top" | "bottom";
@@ -219,6 +220,8 @@ export function createPeel(
     typeof paintable.requestPaint === "function",
   );
 
+  if (htmlInCanvas) prepareHtmlInCanvas(source, content);
+
   let wake = () => {};
   let capture = () => {};
 
@@ -318,7 +321,7 @@ export function createPeel(
     if (!htmlInCanvas) return;
     try {
       sourceCtx!.reset();
-      sourceCtx!.drawElementImage!(content, 0, 0);
+      drawHtmlInCanvas(source, sourceCtx!, content);
       gl!.bindTexture(gl!.TEXTURE_2D, contentTexture);
       gl!.texImage2D(
         gl!.TEXTURE_2D,

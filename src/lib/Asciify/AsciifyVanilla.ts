@@ -1,3 +1,4 @@
+import { prepareHtmlInCanvas, drawHtmlInCanvas } from "../html-in-canvas";
 export type AsciifyCharset = "ascii" | "blocks" | "binary";
 
 export interface AsciifyOptions {
@@ -695,6 +696,8 @@ function initializeAsciify(
     typeof paintable.requestPaint === "function",
   );
 
+  if (htmlInCanvas) prepareHtmlInCanvas(source, content);
+
   let destroyed = false;
   let contentDirty = false;
   let wake = () => {};
@@ -711,7 +714,7 @@ function initializeAsciify(
     paintable.onpaint = () => {
       try {
         sourceCtx!.reset();
-        sourceCtx!.drawElementImage!(content, 0, 0);
+        drawHtmlInCanvas(source, sourceCtx!, content);
         contentDirty = true;
         scheduleTextMask();
         wake();

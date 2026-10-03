@@ -1,3 +1,4 @@
+import { prepareHtmlInCanvas, drawHtmlInCanvas } from "../html-in-canvas";
 import { createRectCache } from "../rect-cache";
 
 export interface DecryptRevealOptions {
@@ -521,6 +522,8 @@ export function createDecryptReveal(
     typeof paintable.requestPaint === "function",
   );
 
+  if (htmlInCanvas) prepareHtmlInCanvas(source, content);
+
   let contentDirty = false;
   let cellsDirty = true;
   let wake = () => {};
@@ -529,7 +532,7 @@ export function createDecryptReveal(
     paintable.onpaint = () => {
       try {
         sourceCtx!.reset();
-        sourceCtx!.drawElementImage!(content, 0, 0);
+        drawHtmlInCanvas(source, sourceCtx!, content);
         contentDirty = true;
         wake();
       } catch {}

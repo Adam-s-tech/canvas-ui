@@ -190,6 +190,8 @@ Html-in-canvas needs Chrome with the `chrome://flags/#canvas-draw-element` flag.
 
 Chrome 150's changes to `texElementImage2D()` and `copyElementImageToTexture()` do not require a migration in Canvas UI. The HTML effects capture content with the 2D `drawElementImage()` API, then upload the canvas with standard `texImage2D()` (WebGL) or `copyExternalImageToTexture()` (WebGPU). Those upload methods keep their existing signatures. This also applies to the generated registry components for all six frameworks.
 
+The [later HTML-in-Canvas changes](https://developer.chrome.com/blog/html-in-canvas-ot-changes) also affect capture markup and hit testing. Canvas UI synchronizes the captured element's geometry when the browser requires it, keeping scrolling, clicks, and cursor effects working in Chrome 154. It also selects `content="drawable"` and `drawable` when the newer API is available, while preserving support for `layoutsubtree` and automatic 2D geometry synchronization.
+
 ## Use with AI
 
 The registry is [MCP](https://canvasui.dev/docs/mcp) ready, so your assistant can browse and install components:

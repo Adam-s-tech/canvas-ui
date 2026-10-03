@@ -1,3 +1,4 @@
+import { prepareHtmlInCanvas, drawHtmlInCanvas } from "../html-in-canvas";
 export type RippleTrigger = "click" | "hover" | "none";
 
 export interface RippleOptions {
@@ -186,6 +187,8 @@ export function createRipple(
     typeof paintable.requestPaint === "function",
   );
 
+  if (htmlInCanvas) prepareHtmlInCanvas(source, content);
+
   let contentDirty = false;
   let wake = () => {};
 
@@ -193,7 +196,7 @@ export function createRipple(
     paintable.onpaint = () => {
       try {
         sourceCtx!.reset();
-        sourceCtx!.drawElementImage!(content, 0, 0);
+        drawHtmlInCanvas(source, sourceCtx!, content);
         contentDirty = true;
         wake();
       } catch {}

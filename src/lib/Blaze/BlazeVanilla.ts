@@ -1,3 +1,4 @@
+import { prepareHtmlInCanvas, drawHtmlInCanvas } from "../html-in-canvas";
 export interface BlazeOptions {
   /** Height of the blaze zone as a fraction of the screen (0 to 1). */
   height?: number;
@@ -370,6 +371,8 @@ export function createBlaze(
     typeof paintable.requestPaint === "function",
   );
 
+  if (htmlInCanvas) prepareHtmlInCanvas(source, content);
+
   let contentDirty = false;
   let wake = () => {};
 
@@ -377,7 +380,7 @@ export function createBlaze(
     paintable.onpaint = () => {
       try {
         sourceCtx!.reset();
-        sourceCtx!.drawElementImage!(content, 0, 0);
+        drawHtmlInCanvas(source, sourceCtx!, content);
         contentDirty = true;
         wake();
       } catch {}

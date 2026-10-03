@@ -207,6 +207,16 @@ function read(base: string, fileName: string) {
   return fs.readFileSync(path.join(LIB_ROOT, base, fileName), "utf8");
 }
 
+/** Keep shared runtime helpers in the single-file, installed component too. */
+function inlineEngineHelpers(engine: string) {
+  return engine.replace(
+    /import\s*\{[^}]*\}\s*from\s*["']\.\.\/(html-in-canvas|rect-cache)["'];\r?\n*/g,
+    (_import, helper: string) =>
+      fs.readFileSync(path.join(LIB_ROOT, `${helper}.ts`), "utf8")
+        .replace(/^export /gm, "") + "\n",
+  );
+}
+
 export type Renderer = "webgl" | "webgpu";
 
 export const RENDERERS: readonly Renderer[] = ["webgl", "webgpu"];
@@ -301,7 +311,7 @@ export function getComponentSources(
   if (!def) throw new Error(`Unknown component: ${component}`);
   const { base } = def;
   if (renderer === "webgpu" && !hasWebGPUEngine(component)) return [];
-  const engine = read(base, engineFileName(base, renderer));
+  const engine = inlineEngineHelpers(read(base, engineFileName(base, renderer)));
   return [
     {
       id: "react",

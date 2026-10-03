@@ -1,3 +1,4 @@
+import { prepareHtmlInCanvas, drawHtmlInCanvas } from "../html-in-canvas";
 export interface GlitchOptions {
   /** Overall strength of the glitch (0 to 2). */
   intensity?: number;
@@ -177,6 +178,8 @@ export function createGlitch(
     typeof paintable.requestPaint === "function",
   );
 
+  if (htmlInCanvas) prepareHtmlInCanvas(source, content);
+
   let contentDirty = false;
   let wake = () => {};
 
@@ -184,7 +187,7 @@ export function createGlitch(
     paintable.onpaint = () => {
       try {
         sourceCtx!.reset();
-        sourceCtx!.drawElementImage!(content, 0, 0);
+        drawHtmlInCanvas(source, sourceCtx!, content);
         contentDirty = true;
         wake();
       } catch {}

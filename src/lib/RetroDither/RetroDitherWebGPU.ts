@@ -1,3 +1,4 @@
+import { prepareHtmlInCanvas, drawHtmlInCanvas } from "../html-in-canvas";
 import {
   effect,
   frame as gpuFrame,
@@ -319,6 +320,8 @@ export function createRetroDither(
       typeof paintable.requestPaint === "function",
   );
 
+  if (htmlInCanvas) prepareHtmlInCanvas(source, content);
+
   let contentDirty = false;
   let wake = () => {};
 
@@ -326,7 +329,7 @@ export function createRetroDither(
     paintable.onpaint = () => {
       try {
         sourceCtx!.reset();
-        sourceCtx!.drawElementImage!(content, 0, 0);
+        drawHtmlInCanvas(source, sourceCtx!, content);
         contentDirty = true;
         scheduleTextMask();
         wake();
@@ -496,15 +499,19 @@ export function createRetroDither(
   function ensureContentTexture(): Texture {
     const width = Math.max(1, source.width);
     const height = Math.max(1, source.height);
-    if (!contentTexture) {
+    if (
+      !contentTexture ||
+      contentTexture.size[0] !== width ||
+      contentTexture.size[1] !== height
+    ) {
+      // A new wrapper invalidates vgpu's cached bindings to the old texture.
+      contentTexture?.destroy();
       contentTexture = gpu!.device.createTexture({
         size: [width, height],
         format: "rgba8unorm",
         usage: ["texture_binding", "copy_dst", "render_attachment"],
         label: "retro-dither.content",
       });
-    } else if (contentTexture.size[0] !== width || contentTexture.size[1] !== height) {
-      contentTexture.resize([width, height]);
     }
     return contentTexture;
   }
@@ -512,15 +519,19 @@ export function createRetroDither(
   function ensureTextMaskTexture(): Texture {
     const width = Math.max(1, maskCanvas.width);
     const height = Math.max(1, maskCanvas.height);
-    if (!textMaskTexture) {
+    if (
+      !textMaskTexture ||
+      textMaskTexture.size[0] !== width ||
+      textMaskTexture.size[1] !== height
+    ) {
+      // A new wrapper invalidates vgpu's cached bindings to the old texture.
+      textMaskTexture?.destroy();
       textMaskTexture = gpu!.device.createTexture({
         size: [width, height],
         format: "rgba8unorm",
         usage: ["texture_binding", "copy_dst", "render_attachment"],
         label: "retro-dither.text-mask",
       });
-    } else if (textMaskTexture.size[0] !== width || textMaskTexture.size[1] !== height) {
-      textMaskTexture.resize([width, height]);
     }
     return textMaskTexture;
   }

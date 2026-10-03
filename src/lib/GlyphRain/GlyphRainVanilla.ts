@@ -1,3 +1,4 @@
+import { prepareHtmlInCanvas, drawHtmlInCanvas } from "../html-in-canvas";
 export interface GlyphRainOptions {
   /** Characters used for the falling glyphs. Deduplicated into a glyph atlas. */
   charset?: string;
@@ -367,6 +368,8 @@ export function createGlyphRain(
     typeof paintable.requestPaint === "function",
   );
 
+  if (htmlInCanvas) prepareHtmlInCanvas(source, content);
+
   let contentDirty = false;
   let pageLum = 0;
   let wake = () => {};
@@ -399,7 +402,7 @@ export function createGlyphRain(
     paintable.onpaint = () => {
       try {
         sourceCtx!.reset();
-        sourceCtx!.drawElementImage!(content, 0, 0);
+        drawHtmlInCanvas(source, sourceCtx!, content);
         contentDirty = true;
         wake();
       } catch {}

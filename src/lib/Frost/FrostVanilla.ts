@@ -1,3 +1,4 @@
+import { prepareHtmlInCanvas, drawHtmlInCanvas } from "../html-in-canvas";
 import { createRectCache } from "../rect-cache";
 
 export interface FrostOptions {
@@ -560,6 +561,8 @@ export function createFrost(
     typeof paintable.requestPaint === "function",
   );
 
+  if (htmlInCanvas) prepareHtmlInCanvas(source, content);
+
   let contentDirty = false;
   let contentReady = !htmlInCanvas;
   let wake = () => {};
@@ -567,7 +570,7 @@ export function createFrost(
   function captureContent() {
     try {
       sourceCtx!.reset();
-      sourceCtx!.drawElementImage!(content, 0, 0);
+      drawHtmlInCanvas(source, sourceCtx!, content);
       contentDirty = true;
       wake();
     } catch {}

@@ -1,3 +1,4 @@
+import { prepareHtmlInCanvas, drawHtmlInCanvas } from "../html-in-canvas";
 export type AsciiSweepCharset = "ascii" | "blocks" | "binary";
 
 export type AsciiSweepBlend = "auto" | "add" | "over";
@@ -964,6 +965,10 @@ function initializeAsciiSweep(
     typeof (slots[0].source as PaintableCanvas).requestPaint === "function",
   );
 
+  if (htmlInCanvas) {
+    for (const slot of slots) prepareHtmlInCanvas(slot.source, slot.content);
+  }
+
   const states: SlotState[] = slots.map((slot, index) => ({
     source: slot.source,
     content: slot.content,
@@ -990,7 +995,7 @@ function initializeAsciiSweep(
       state.paintable.onpaint = () => {
         try {
           state.ctx!.reset();
-          state.ctx!.drawElementImage!(state.content, 0, 0);
+          drawHtmlInCanvas(state.source, state.ctx!, state.content);
           state.dirty = true;
           wake();
         } catch {}

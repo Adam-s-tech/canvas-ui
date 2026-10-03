@@ -1,3 +1,4 @@
+import { prepareHtmlInCanvas, drawHtmlInCanvas } from "../html-in-canvas";
 import {
   effect,
   frame as gpuFrame,
@@ -729,6 +730,8 @@ function initializeAsciify(
     typeof paintable.requestPaint === "function",
   );
 
+  if (htmlInCanvas) prepareHtmlInCanvas(source, content);
+
   let destroyed = false;
   let contentDirty = false;
   let wake = () => {};
@@ -746,7 +749,7 @@ function initializeAsciify(
     paintable.onpaint = () => {
       try {
         sourceCtx!.reset();
-        sourceCtx!.drawElementImage!(content, 0, 0);
+        drawHtmlInCanvas(source, sourceCtx!, content);
         contentDirty = true;
         scheduleTextMask();
         wake();
@@ -1072,15 +1075,19 @@ function initializeAsciify(
   function ensureMaskTexture(): Texture {
     const w = Math.max(1, maskCanvas.width || 1);
     const h = Math.max(1, maskCanvas.height || 1);
-    if (!textMaskTexture) {
+    if (
+      !textMaskTexture ||
+      textMaskTexture.size[0] !== w ||
+      textMaskTexture.size[1] !== h
+    ) {
+      // A new wrapper invalidates vgpu's cached bindings to the old texture.
+      textMaskTexture?.destroy();
       textMaskTexture = gpu!.device.createTexture({
         size: [w, h],
         format: "rgba8unorm",
         usage: ["texture_binding", "copy_dst", "render_attachment"],
         label: "asciify.text-mask",
       });
-    } else if (textMaskTexture.size[0] !== w || textMaskTexture.size[1] !== h) {
-      textMaskTexture.resize([w, h]);
     }
     return textMaskTexture;
   }

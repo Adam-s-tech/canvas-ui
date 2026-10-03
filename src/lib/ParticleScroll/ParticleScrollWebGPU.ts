@@ -1,3 +1,4 @@
+import { prepareHtmlInCanvas, drawHtmlInCanvas } from "../html-in-canvas";
 import {
   draw,
   effect,
@@ -316,6 +317,8 @@ export function createParticleScroll(
     typeof paintable.requestPaint === "function",
   );
 
+  if (htmlInCanvas) prepareHtmlInCanvas(source, content);
+
   let contentDirty = false;
   let wake = () => {};
 
@@ -323,7 +326,7 @@ export function createParticleScroll(
     paintable.onpaint = () => {
       try {
         sourceCtx!.reset();
-        sourceCtx!.drawElementImage!(content, 0, 0);
+        drawHtmlInCanvas(source, sourceCtx!, content);
         contentDirty = true;
         wake();
       } catch {}
@@ -440,15 +443,15 @@ export function createParticleScroll(
 
   function ensureRowTexture(winLen: number): Texture {
     const w = Math.max(1, winLen);
-    if (!rowTexture) {
+    if (!rowTexture || rowTexture.size[0] !== w) {
+      // A new wrapper invalidates vgpu's cached bindings to the old texture.
+      rowTexture?.destroy();
       rowTexture = gpu!.device.createTexture({
         size: [w, 1],
         format: "r32float",
         usage: ["texture_binding", "copy_dst"],
         label: "particle-scroll.rows",
       });
-    } else if (rowTexture.size[0] !== w) {
-      rowTexture.resize([w, 1]);
     }
     return rowTexture;
   }

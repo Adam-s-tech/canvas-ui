@@ -1,3 +1,4 @@
+import { prepareHtmlInCanvas, drawHtmlInCanvas } from "../html-in-canvas";
 import { effect, frame as gpuFrame, init, sampler, surface, type Effect, type Gpu, type Surface } from "vgpu";
 import type { Texture } from "vgpu";
 
@@ -184,6 +185,8 @@ export function createGlitch(
     typeof paintable.requestPaint === "function",
   );
 
+  if (htmlInCanvas) prepareHtmlInCanvas(source, content);
+
   let contentDirty = false;
   let wake = () => {};
 
@@ -191,7 +194,7 @@ export function createGlitch(
     paintable.onpaint = () => {
       try {
         sourceCtx!.reset();
-        sourceCtx!.drawElementImage!(content, 0, 0);
+        drawHtmlInCanvas(source, sourceCtx!, content);
         contentDirty = true;
         wake();
       } catch {}
@@ -239,15 +242,19 @@ export function createGlitch(
   function ensureContentTexture(): Texture {
     const w = Math.max(1, source.width);
     const h = Math.max(1, source.height);
-    if (!contentTexture) {
+    if (
+      !contentTexture ||
+      contentTexture.size[0] !== w ||
+      contentTexture.size[1] !== h
+    ) {
+      // A new wrapper invalidates vgpu's cached bindings to the old texture.
+      contentTexture?.destroy();
       contentTexture = gpu!.device.createTexture({
         size: [w, h],
         format: "rgba8unorm",
         usage: ["texture_binding", "copy_dst", "render_attachment"],
         label: "glitch.content",
       });
-    } else if (contentTexture.size[0] !== w || contentTexture.size[1] !== h) {
-      contentTexture.resize([w, h]);
     }
     return contentTexture;
   }

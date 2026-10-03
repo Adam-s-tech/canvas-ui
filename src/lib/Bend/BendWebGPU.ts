@@ -1,3 +1,4 @@
+import { prepareHtmlInCanvas, drawHtmlInCanvas } from "../html-in-canvas";
 import {
   effect,
   frame as gpuFrame,
@@ -359,6 +360,8 @@ export function createBend(
       typeof paintable.requestPaint === "function",
   );
 
+  if (htmlInCanvas) prepareHtmlInCanvas(source, content);
+
   let gpu: Gpu | null = null;
   let screen: Surface | null = null;
   let fx: Effect | null = null;
@@ -374,7 +377,7 @@ export function createBend(
     paintable.onpaint = () => {
       try {
         sourceCtx!.reset();
-        sourceCtx!.drawElementImage!(content, 0, 0);
+        drawHtmlInCanvas(source, sourceCtx!, content);
         contentDirty = true;
         wake();
       } catch {}
