@@ -1,3 +1,4 @@
+import { getCanvasPixelRatio, createCanvasResizeObserver } from "../canvas-viewport";
 import { prepareHtmlInCanvas, drawHtmlInCanvas } from "../html-in-canvas";
 import {
   effect,
@@ -353,7 +354,7 @@ export function createBubble(
   let dprNow = 1;
 
   function syncCanvasSize() {
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const dpr = getCanvasPixelRatio(output);
     dprNow = dpr;
     const width = Math.max(1, Math.round(output.clientWidth * dpr));
     const height = Math.max(1, Math.round(output.clientHeight * dpr));
@@ -749,7 +750,7 @@ export function createBubble(
   }
   motionQuery.addEventListener("change", onMotionChange);
 
-  const observer = new ResizeObserver(() => {
+  const observer = createCanvasResizeObserver(() => {
     syncCanvasSize();
     start();
   });

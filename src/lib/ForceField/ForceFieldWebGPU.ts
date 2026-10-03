@@ -1,3 +1,4 @@
+import { getCanvasPixelRatio, createCanvasResizeObserver } from "../canvas-viewport";
 import { prepareHtmlInCanvas, drawHtmlInCanvas } from "../html-in-canvas";
 import {
   effect,
@@ -779,7 +780,7 @@ export function createForceField(
   }
 
   function syncCanvasSize() {
-    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    dpr = getCanvasPixelRatio(output);
     const width = Math.max(1, Math.round(output.clientWidth * dpr));
     const height = Math.max(1, Math.round(output.clientHeight * dpr));
     if (screen) {
@@ -791,14 +792,14 @@ export function createForceField(
     }
     resizeGpuTargets(width, height);
     if (htmlInCanvas) {
-      const cssWidth = Math.max(1, Math.round(source.clientWidth));
-      const cssHeight = Math.max(1, Math.round(source.clientHeight));
+      const sourceWidth = Math.max(1, Math.round(source.clientWidth * dpr));
+      const sourceHeight = Math.max(1, Math.round(source.clientHeight * dpr));
       if (
-        source.width !== cssWidth * dpr ||
-        source.height !== cssHeight * dpr
+        source.width !== sourceWidth ||
+        source.height !== sourceHeight
       ) {
-        source.width = cssWidth * dpr;
-        source.height = cssHeight * dpr;
+        source.width = sourceWidth;
+        source.height = sourceHeight;
       }
       paintable.requestPaint!();
     }
@@ -1152,7 +1153,7 @@ export function createForceField(
   }
   content.addEventListener("scroll", onScroll, { passive: true });
 
-  const observer = new ResizeObserver(() => {
+  const observer = createCanvasResizeObserver(() => {
     syncCanvasSize();
     start();
   });

@@ -1,3 +1,4 @@
+import { getCanvasPixelRatio, createCanvasResizeObserver } from "../canvas-viewport";
 import { prepareHtmlInCanvas, drawHtmlInCanvas } from "../html-in-canvas";
 import {
   effect,
@@ -81,7 +82,9 @@ export interface FrostElements {
 }
 
 export interface FrostInstance {
-  /** Melt a spot at (x, y) in [0,1] space, top-left origin. */
+  /** Melt a spot at (x, y) in [0,1] space, top-left origin.
+   * Keeps the newest 32 pending calls while suspended; applies at most 4 per frame.
+   */
   melt: (x: number, y: number) => void;
   /** Update options live. */
   setOptions: (options: FrostOptions) => void;
@@ -738,7 +741,7 @@ export function createFrost(
   }
 
   function syncCanvasSize() {
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const dpr = getCanvasPixelRatio(output);
     dprNow = dpr;
     const width = Math.max(1, Math.round(output.clientWidth * dpr));
     const height = Math.max(1, Math.round(output.clientHeight * dpr));
@@ -755,11 +758,11 @@ export function createFrost(
       output.height = height;
     }
     if (htmlInCanvas) {
-      const cssWidth = Math.max(1, Math.round(source.clientWidth));
-      const cssHeight = Math.max(1, Math.round(source.clientHeight));
-      if (source.width !== cssWidth * dpr || source.height !== cssHeight * dpr) {
-        source.width = cssWidth * dpr;
-        source.height = cssHeight * dpr;
+      const sourceWidth = Math.max(1, Math.round(source.clientWidth * dpr));
+      const sourceHeight = Math.max(1, Math.round(source.clientHeight * dpr));
+      if (source.width !== sourceWidth || source.height !== sourceHeight) {
+        source.width = sourceWidth;
+        source.height = sourceHeight;
       }
       paintable.requestPaint!();
     }
@@ -814,7 +817,9 @@ export function createFrost(
   let prevPointerY = 0.5;
   let lastScrollX = 0;
   let lastScrollY = 0;
-  let queuedMelts: Array<[number, number]> = [];
+  const MAX_PENDING_MELTS = 32;
+  const MAX_MELTS_PER_FRAME = 4;
+  const queuedMelts: Array<[number, number]> = [];
 
   function pointerParams(pointX: number, pointY: number, prevX: number, prevY: number, touching: number) {
     const cssW = Math.max(output.clientWidth, 1);
@@ -838,11 +843,16 @@ export function createFrost(
   }
 
   function renderPointer() {
-    if (!pointer || !pointerFx || !noiseTarget) return;
+    if (!pointer || !pointerFx || !noiseTarget) {
+      queuedMelts.length = 0;
+      return;
+    }
     const sx = content.scrollLeft;
     const sy = content.scrollTop;
     if (queuedMelts.length > 0) {
-      for (const [mx, my] of queuedMelts) {
+      const count = Math.min(queuedMelts.length, MAX_MELTS_PER_FRAME);
+      for (let i = 0; i < count; i++) {
+        const [mx, my] = queuedMelts.shift()!;
         pointerFx.set({
           uBack: pointer.read,
           params: pointerParams(mx, my, mx, my, 1),
@@ -850,7 +860,6 @@ export function createFrost(
         pointerFx.draw(pointer.write);
         pointer.swap();
       }
-      queuedMelts = [];
     } else {
       pointerFx.set({
         uBack: pointer.read,
@@ -951,7 +960,7 @@ export function createFrost(
 
   function frame(now: number) {
     if (destroyed) return;
-    if (!visible) {
+    if (!visible || document.hidden) {
       running = false;
       return;
     }
@@ -970,6 +979,7 @@ export function createFrost(
       return;
     }
     renderBlur();
+    if (queuedMelts.length > 0) activeUntil = now + refreezeDelayMs();
     renderPointer();
     renderFrost(now);
     renderOutput();
@@ -979,7 +989,8 @@ export function createFrost(
       now < activeUntil ||
       now < introStart + Math.max(config.introDuration, 0) * 1000 + 120 ||
       contentDirty ||
-      config.shimmer > 0.001;
+      config.shimmer > 0.001 ||
+      queuedMelts.length > 0;
     if (!animating) {
       running = false;
       return;
@@ -988,7 +999,7 @@ export function createFrost(
   }
 
   function start() {
-    if (destroyed || running || !visible) return;
+    if (destroyed || running || !visible || document.hidden) return;
     running = true;
     raf = requestAnimationFrame(frame);
   }
@@ -1063,8 +1074,22 @@ export function createFrost(
 
   const rectCache = createRectCache(output);
 
+  function suspend() {
+    cancelAnimationFrame(raf);
+    running = false;
+    pointerOn = false;
+    prevPointerX = pointerX;
+    prevPointerY = pointerY;
+  }
+
+  function onVisibilityChange() {
+    if (document.hidden) suspend();
+    else start();
+  }
+  document.addEventListener("visibilitychange", onVisibilityChange);
+
   function onPointerMove(event: PointerEvent) {
-    if (reducedMotion) return;
+    if (destroyed || reducedMotion || !visible || document.hidden) return;
     const rect = rectCache.current;
     pointerX = (event.clientX - rect.left) / Math.max(rect.width, 1);
     pointerY = (event.clientY - rect.top) / Math.max(rect.height, 1);
@@ -1098,7 +1123,8 @@ export function createFrost(
   }
   content.addEventListener("scroll", onScroll, { passive: true });
 
-  const observer = new ResizeObserver(() => {
+  const observer = createCanvasResizeObserver(() => {
+    if (destroyed) return;
     syncCanvasSize();
     start();
   });
@@ -1106,18 +1132,23 @@ export function createFrost(
 
   const intersection = new IntersectionObserver((entries) => {
     visible = entries[entries.length - 1]?.isIntersecting ?? true;
+    if (destroyed) return;
     if (visible) start();
+    else suspend();
   });
   intersection.observe(output);
 
   return {
     melt(x, y) {
-      if (reducedMotion) return;
+      if (destroyed || reducedMotion) return;
+      // Explicit API input is retained while suspended, up to the queue limit.
+      if (queuedMelts.length >= MAX_PENDING_MELTS) queuedMelts.shift();
       queuedMelts.push([x, y]);
       activeUntil = performance.now() + refreezeDelayMs();
       start();
     },
     setOptions(next) {
+      if (destroyed) return;
       if (
         !Object.entries(next).some(
           ([key, value]) => config[key as keyof FrostOptions] !== value,
@@ -1136,11 +1167,16 @@ export function createFrost(
       start();
     },
     resize() {
+      if (destroyed) return;
       syncCanvasSize();
       start();
     },
     destroy() {
+      if (destroyed) return;
       destroyed = true;
+      queuedMelts.length = 0;
+      suspend();
+      document.removeEventListener("visibilitychange", onVisibilityChange);
       rectCache.destroy();
       cancelAnimationFrame(raf);
       observer.disconnect();

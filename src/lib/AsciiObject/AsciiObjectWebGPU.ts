@@ -1,3 +1,4 @@
+import { getCanvasPixelRatio, createCanvasResizeObserver } from "../canvas-viewport";
 /* WebGPU port. three.js is kept for loading, shape tracing, matrices, and controls; rendering goes through vgpu.
  * The studio environment that the WebGL build gets from PMREMGenerator is reproduced by ray casting the same
  * room (shell, blocks, emissive formers, lights) into an equirect radiance map on the CPU, prefiltering it per
@@ -1674,7 +1675,7 @@ export function createAsciiObject(elements: AsciiObjectElements, options: AsciiO
   function resize() {
     const width = Math.max(canvas.clientWidth, 1);
     const height = Math.max(canvas.clientHeight, 1);
-    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    dpr = getCanvasPixelRatio(canvas);
     const deviceW = Math.max(1, Math.round(width * dpr));
     const deviceH = Math.max(1, Math.round(height * dpr));
     resolution = [deviceW, deviceH];
@@ -1694,7 +1695,7 @@ export function createAsciiObject(elements: AsciiObjectElements, options: AsciiO
     syncCellGrid();
   }
 
-  const observer = new ResizeObserver(() => {
+  const observer = createCanvasResizeObserver(() => {
     resize();
     startLoop();
   });

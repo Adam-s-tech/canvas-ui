@@ -1,3 +1,4 @@
+import { getCanvasPixelRatio, createCanvasResizeObserver } from "../canvas-viewport";
 import {
   draw,
   frame as gpuFrame,
@@ -761,7 +762,7 @@ export function createParticleObject(
   function syncCanvasSize() {
     const width = Math.max(canvas.clientWidth, 1);
     const height = Math.max(canvas.clientHeight, 1);
-    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    dpr = getCanvasPixelRatio(canvas);
     const deviceW = Math.max(1, Math.round(width * dpr));
     const deviceH = Math.max(1, Math.round(height * dpr));
     if (screen) {
@@ -801,7 +802,7 @@ export function createParticleObject(
     }
   }
 
-  const observer = new ResizeObserver(() => {
+  const observer = createCanvasResizeObserver(() => {
     syncCanvasSize();
     startLoop();
   });

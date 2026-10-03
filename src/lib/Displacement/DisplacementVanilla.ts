@@ -1,3 +1,4 @@
+import { getCanvasPixelRatio, createCanvasResizeObserver } from "../canvas-viewport";
 import { prepareHtmlInCanvas, drawHtmlInCanvas } from "../html-in-canvas";
 import { createRectCache } from "../rect-cache";
 
@@ -283,7 +284,7 @@ export function createDisplacement(
   let dpr = 1;
 
   function syncCanvasSize() {
-    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    dpr = getCanvasPixelRatio(output, gl!);
     outW = Math.max(1, output.clientWidth);
     outH = Math.max(1, output.clientHeight);
     const width = Math.max(1, Math.round(outW * dpr));
@@ -293,14 +294,14 @@ export function createDisplacement(
       output.height = height;
     }
     if (htmlInCanvas) {
-      const cssWidth = Math.max(1, Math.round(source.clientWidth));
-      const cssHeight = Math.max(1, Math.round(source.clientHeight));
+      const sourceWidth = Math.max(1, Math.round(source.clientWidth * dpr));
+      const sourceHeight = Math.max(1, Math.round(source.clientHeight * dpr));
       if (
-        source.width !== cssWidth * dpr ||
-        source.height !== cssHeight * dpr
+        source.width !== sourceWidth ||
+        source.height !== sourceHeight
       ) {
-        source.width = cssWidth * dpr;
-        source.height = cssHeight * dpr;
+        source.width = sourceWidth;
+        source.height = sourceHeight;
       }
       paintable.requestPaint!();
     }
@@ -530,7 +531,7 @@ export function createDisplacement(
   pointerHost.addEventListener("pointerleave", onPointerLeave, { passive: true });
   pointerHost.addEventListener("pointercancel", onPointerLeave, { passive: true });
 
-  const observer = new ResizeObserver(() => {
+  const observer = createCanvasResizeObserver(() => {
     syncCanvasSize();
     start();
   });

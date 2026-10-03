@@ -210,7 +210,7 @@ function read(base: string, fileName: string) {
 /** Keep shared runtime helpers in the single-file, installed component too. */
 function inlineEngineHelpers(engine: string) {
   return engine.replace(
-    /import\s*\{[^}]*\}\s*from\s*["']\.\.\/(html-in-canvas|rect-cache)["'];\r?\n*/g,
+    /import\s*\{[^}]*\}\s*from\s*["']\.\.\/(canvas-viewport|html-in-canvas|rect-cache)["'];\r?\n*/g,
     (_import, helper: string) =>
       fs.readFileSync(path.join(LIB_ROOT, `${helper}.ts`), "utf8")
         .replace(/^export /gm, "") + "\n",

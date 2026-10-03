@@ -1,3 +1,4 @@
+import { getCanvasPixelRatio, createCanvasResizeObserver } from "../canvas-viewport";
 import { prepareHtmlInCanvas, drawHtmlInCanvas } from "../html-in-canvas";
 import { effect, frame as gpuFrame, init, sampler, surface, type Effect, type Gpu, type Surface } from "vgpu";
 import type { Texture } from "vgpu";
@@ -461,9 +462,9 @@ function intersectFallbackRects(
 function paintFallbackSnapshot(
   content: HTMLElement,
   canvas: HTMLCanvasElement,
+  dpr: number,
 ) {
   const rootRect = content.getBoundingClientRect();
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
   const width = Math.max(1, Math.round(rootRect.width * dpr));
   const height = Math.max(1, Math.round(rootRect.height * dpr));
   if (canvas.width !== width || canvas.height !== height) {
@@ -1074,7 +1075,7 @@ function initializeAsciiSweep(
     state.captureTimer = 0;
     state.scrollTimer = 0;
     try {
-      paintFallbackSnapshot(state.content, state.source);
+      paintFallbackSnapshot(state.content, state.source, getCanvasPixelRatio(output));
       if (destroyed) return;
       state.fallbackCanvas = state.source;
       state.capturedScrollLeft = state.content.scrollLeft;
@@ -1141,7 +1142,7 @@ function initializeAsciiSweep(
         states[0].content.clientWidth / Math.max(output.clientWidth, 1),
       ),
     );
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const dpr = getCanvasPixelRatio(output);
     const width = Math.max(1, Math.round(output.clientWidth * dpr));
     const height = Math.max(1, Math.round(output.clientHeight * dpr));
     if (screen) {
@@ -1157,14 +1158,14 @@ function initializeAsciiSweep(
     }
     if (htmlInCanvas) {
       for (const state of states) {
-        const cssWidth = Math.max(1, Math.round(state.source.clientWidth));
-        const cssHeight = Math.max(1, Math.round(state.source.clientHeight));
+        const sourceWidth = Math.max(1, Math.round(state.source.clientWidth * dpr));
+        const sourceHeight = Math.max(1, Math.round(state.source.clientHeight * dpr));
         if (
-          state.source.width !== cssWidth * dpr ||
-          state.source.height !== cssHeight * dpr
+          state.source.width !== sourceWidth ||
+          state.source.height !== sourceHeight
         ) {
-          state.source.width = cssWidth * dpr;
-          state.source.height = cssHeight * dpr;
+          state.source.width = sourceWidth;
+          state.source.height = sourceHeight;
           changed = true;
         }
         state.paintable.requestPaint?.();
@@ -1565,7 +1566,7 @@ function initializeAsciiSweep(
   const schemeQuery = window.matchMedia("(prefers-color-scheme: dark)");
   schemeQuery.addEventListener("change", onThemeShift);
 
-  const resizeObserver = new ResizeObserver(() => {
+  const resizeObserver = createCanvasResizeObserver(() => {
     if (syncCanvasSize()) requestCapture();
     start();
   });

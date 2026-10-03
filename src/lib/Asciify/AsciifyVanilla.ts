@@ -1,3 +1,4 @@
+import { getCanvasPixelRatio, createCanvasResizeObserver } from "../canvas-viewport";
 import { prepareHtmlInCanvas, drawHtmlInCanvas } from "../html-in-canvas";
 export type AsciifyCharset = "ascii" | "blocks" | "binary";
 
@@ -290,9 +291,9 @@ function intersectFallbackRects(
 function paintFallbackSnapshot(
   content: HTMLElement,
   canvas: HTMLCanvasElement,
+  dpr: number,
 ) {
   const rootRect = content.getBoundingClientRect();
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
   const width = Math.max(1, Math.round(rootRect.width * dpr));
   const height = Math.max(1, Math.round(rootRect.height * dpr));
   if (canvas.width !== width || canvas.height !== height) {
@@ -738,7 +739,7 @@ function initializeAsciify(
     fallbackCaptureTimer = 0;
     fallbackScrollCaptureTimer = 0;
     try {
-      paintFallbackSnapshot(content, source);
+      paintFallbackSnapshot(content, source, getCanvasPixelRatio(output, gl!));
       if (destroyed) return;
       fallbackSource = source;
       capturedScrollLeft = content.scrollLeft;
@@ -910,7 +911,7 @@ function initializeAsciify(
 
   function syncCanvasSize(): boolean {
     let changed = false;
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const dpr = getCanvasPixelRatio(output, gl!);
     const width = Math.max(1, Math.round(output.clientWidth * dpr));
     const height = Math.max(1, Math.round(output.clientHeight * dpr));
     if (output.width !== width || output.height !== height) {
@@ -923,14 +924,14 @@ function initializeAsciify(
       Math.max(0.05, content.clientWidth / Math.max(output.clientWidth, 1)),
     );
     if (htmlInCanvas) {
-      const cssWidth = Math.max(1, Math.round(source.clientWidth));
-      const cssHeight = Math.max(1, Math.round(source.clientHeight));
+      const sourceWidth = Math.max(1, Math.round(source.clientWidth * dpr));
+      const sourceHeight = Math.max(1, Math.round(source.clientHeight * dpr));
       if (
-        source.width !== cssWidth * dpr ||
-        source.height !== cssHeight * dpr
+        source.width !== sourceWidth ||
+        source.height !== sourceHeight
       ) {
-        source.width = cssWidth * dpr;
-        source.height = cssHeight * dpr;
+        source.width = sourceWidth;
+        source.height = sourceHeight;
         changed = true;
       }
       paintable.requestPaint!();
@@ -1168,7 +1169,7 @@ function initializeAsciify(
     outputRect = output.getBoundingClientRect();
   };
 
-  const observer = new ResizeObserver(() => {
+  const observer = createCanvasResizeObserver(() => {
     refreshOutputRect();
     if (syncCanvasSize()) queueFallbackCapture();
     start();

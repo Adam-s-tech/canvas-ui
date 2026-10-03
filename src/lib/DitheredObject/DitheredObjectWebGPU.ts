@@ -1,3 +1,4 @@
+import { getCanvasPixelRatio, createCanvasResizeObserver } from "../canvas-viewport";
 /*
  * WebGPU/vgpu port of DitheredObject. three.js remains on the CPU for loading,
  * geometry, texture and camera/control work; all rendering and post-processing run
@@ -1275,15 +1276,15 @@ export function createDitheredObject(
   }
 
   function ensureMaskTexture(width = 1, height = 1) {
-    if (!maskTexture) {
+    if (!maskTexture || maskTexture.size[0] !== width || maskTexture.size[1] !== height) {
+      // Pinch zoom changes this mask's size; replace its cached GPU binding too.
+      maskTexture?.destroy();
       maskTexture = gpu!.device.createTexture({
         size: [width, height],
         format: "r8unorm",
         usage: ["texture_binding", "copy_dst"],
         label: "dithered-object.mask",
       });
-    } else if (maskTexture.size[0] !== width || maskTexture.size[1] !== height) {
-      maskTexture.resize([width, height]);
     }
     return maskTexture;
   }
@@ -1527,7 +1528,7 @@ export function createDitheredObject(
   function resize() {
     const width = Math.max(canvas.clientWidth, 1);
     const height = Math.max(canvas.clientHeight, 1);
-    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    dpr = getCanvasPixelRatio(canvas);
     fullWidth = Math.max(Math.round(width * dpr), 1);
     fullHeight = Math.max(Math.round(height * dpr), 1);
     if (screen) {
@@ -1694,7 +1695,7 @@ export function createDitheredObject(
   };
   motionQuery.addEventListener("change", onMotionChange);
 
-  const observer = new ResizeObserver(() => {
+  const observer = createCanvasResizeObserver(() => {
     resize();
     startLoop();
   });

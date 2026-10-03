@@ -1,3 +1,4 @@
+import { getCanvasPixelRatio, createCanvasResizeObserver } from "../canvas-viewport";
 import { prepareHtmlInCanvas, drawHtmlInCanvas } from "../html-in-canvas";
 import { createRectCache } from "../rect-cache";
 
@@ -435,7 +436,7 @@ export function createGrid(
   );
 
   function dpr() {
-    return Math.min(window.devicePixelRatio || 1, 2);
+    return getCanvasPixelRatio(output, gl!);
   }
 
   let tileTexture: WebGLTexture | null = null;
@@ -709,7 +710,7 @@ export function createGrid(
   }
   motionQuery.addEventListener("change", onMotionChange);
 
-  const observer = new ResizeObserver(() => {
+  const observer = createCanvasResizeObserver(() => {
     syncCanvasSize();
     start();
   });

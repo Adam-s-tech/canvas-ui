@@ -1,3 +1,4 @@
+import { getCanvasPixelRatio, createCanvasResizeObserver } from "../canvas-viewport";
 import { prepareHtmlInCanvas, drawHtmlInCanvas } from "../html-in-canvas";
 import {
   effect,
@@ -640,7 +641,7 @@ export function createGlyphRain(
   let dpr = 1;
 
   function syncCanvasSize() {
-    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    dpr = getCanvasPixelRatio(output);
     const width = Math.max(1, Math.round(output.clientWidth * dpr));
     const height = Math.max(1, Math.round(output.clientHeight * dpr));
     if (screen) {
@@ -651,14 +652,14 @@ export function createGlyphRain(
       output.height = height;
     }
     if (htmlInCanvas) {
-      const cssWidth = Math.max(1, Math.round(source.clientWidth));
-      const cssHeight = Math.max(1, Math.round(source.clientHeight));
+      const sourceWidth = Math.max(1, Math.round(source.clientWidth * dpr));
+      const sourceHeight = Math.max(1, Math.round(source.clientHeight * dpr));
       if (
-        source.width !== cssWidth * dpr ||
-        source.height !== cssHeight * dpr
+        source.width !== sourceWidth ||
+        source.height !== sourceHeight
       ) {
-        source.width = cssWidth * dpr;
-        source.height = cssHeight * dpr;
+        source.width = sourceWidth;
+        source.height = sourceHeight;
       }
       paintable.requestPaint!();
     }
@@ -930,7 +931,7 @@ export function createGlyphRain(
   pointerHost.addEventListener("pointercancel", onPointerLeave, { passive: true });
   pointerHost.addEventListener("pointerdown", onPointerDown, { passive: true });
 
-  const observer = new ResizeObserver(() => {
+  const observer = createCanvasResizeObserver(() => {
     syncCanvasSize();
     start();
   });

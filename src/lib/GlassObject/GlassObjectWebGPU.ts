@@ -1,3 +1,4 @@
+import { getCanvasPixelRatio, createCanvasResizeObserver } from "../canvas-viewport";
 /*
  * WebGPU/vgpu port of GlassObject. three.js is kept for loading, tracing, matrices, and controls;
  * rendering goes through vgpu. The studio PMREM is approximated by baking the same room to a
@@ -1443,15 +1444,15 @@ function uploadExternalTexture(
   const width = Math.max(1, Math.round(rawW));
   const height = Math.max(1, Math.round(rawH));
   let tex = previous;
-  if (!tex) {
+  if (!tex || tex.size[0] !== width || tex.size[1] !== height) {
+    // A new wrapper invalidates bindings when a resized canvas is uploaded.
+    tex?.destroy();
     tex = gpu.device.createTexture({
       size: [width, height],
       format: "rgba8unorm",
       usage: ["texture_binding", "copy_dst", "render_attachment"],
       label,
     });
-  } else if (tex.size[0] !== width || tex.size[1] !== height) {
-    tex.resize([width, height]);
   }
   gpu.gpu.queue.copyExternalImageToTexture({ source }, { texture: tex.gpu }, [width, height]);
   return tex;
@@ -2072,7 +2073,7 @@ export function createGlassObject(
   function resize() {
     const width = Math.max(canvas.clientWidth, 1);
     const height = Math.max(canvas.clientHeight, 1);
-    const pr = Math.min(window.devicePixelRatio || 1, 2);
+    const pr = getCanvasPixelRatio(canvas);
     const pixelWidth = Math.max(1, Math.round(width * pr));
     const pixelHeight = Math.max(1, Math.round(height * pr));
     if (screen) {
@@ -2095,7 +2096,7 @@ export function createGlassObject(
     startLoop();
   }
 
-  const observer = new ResizeObserver(resize);
+  const observer = createCanvasResizeObserver(resize);
   observer.observe(canvas);
 
   let inView = true;

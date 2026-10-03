@@ -192,6 +192,8 @@ Chrome 150's changes to `texElementImage2D()` and `copyElementImageToTexture()` 
 
 The [later HTML-in-Canvas changes](https://developer.chrome.com/blog/html-in-canvas-ot-changes) also affect capture markup and hit testing. Canvas UI synchronizes the captured element's geometry when the browser requires it, keeping scrolling, clicks, and cursor effects working in Chrome 154. It also selects `content="drawable"` and `drawable` when the newer API is available, while preserving support for `layoutsubtree` and automatic 2D geometry synchronization.
 
+Both renderers follow pinch zoom through `visualViewport`, increasing capture and rendering resolution while preserving the HTML's position and interactions. The normal 2× device-pixel-ratio budget is multiplied by the zoom scale, subject to GPU limits, an 8192-pixel maximum dimension, and a 16-megapixel buffer budget. Particle Scroll uses plain HTML without a GPU overlay when HTML-in-Canvas is unavailable, including in Safari.
+
 ## Use with AI
 
 The registry is [MCP](https://canvasui.dev/docs/mcp) ready, so your assistant can browse and install components:

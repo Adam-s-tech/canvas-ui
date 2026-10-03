@@ -1,3 +1,4 @@
+import { getCanvasPixelRatio, createCanvasResizeObserver } from "../canvas-viewport";
 import { prepareHtmlInCanvas, drawHtmlInCanvas } from "../html-in-canvas";
 import {
   draw,
@@ -383,7 +384,7 @@ export function createCloth(
   }
 
   function syncCanvasSize() {
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const dpr = getCanvasPixelRatio(output);
     const width = Math.max(1, Math.round(output.clientWidth * dpr));
     const height = Math.max(1, Math.round(output.clientHeight * dpr));
     if (screen) {
@@ -398,11 +399,11 @@ export function createCloth(
       Math.max(0.05, content.clientWidth / Math.max(wrapper.clientWidth, 1)),
     );
     if (htmlInCanvas) {
-      const cssWidth = Math.max(1, Math.round(source.clientWidth));
-      const cssHeight = Math.max(1, Math.round(source.clientHeight));
-      if (source.width !== cssWidth * dpr || source.height !== cssHeight * dpr) {
-        source.width = cssWidth * dpr;
-        source.height = cssHeight * dpr;
+      const sourceWidth = Math.max(1, Math.round(source.clientWidth * dpr));
+      const sourceHeight = Math.max(1, Math.round(source.clientHeight * dpr));
+      if (source.width !== sourceWidth || source.height !== sourceHeight) {
+        source.width = sourceWidth;
+        source.height = sourceHeight;
       }
       paintable.requestPaint!();
     }
@@ -869,7 +870,7 @@ export function createCloth(
   const schemeQuery = window.matchMedia("(prefers-color-scheme: dark)");
   schemeQuery.addEventListener("change", onThemeShift);
 
-  const observer = new ResizeObserver(() => {
+  const observer = createCanvasResizeObserver(() => {
     syncCanvasSize();
     start();
   });

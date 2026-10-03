@@ -68,6 +68,12 @@ The API is identical, so switching renderers is usually replacing the installed 
 - WebGPU build: Chrome/Edge 113+, Safari 26+ / iOS 26, and Firefox 141+.
 - If navigator.gpu is missing, or no adapter is available, the WebGPU component renders the wrapped content unchanged.
 
+## Pinch zoom
+
+Both renderers increase capture and rendering resolution when you pinch to zoom. The HTML keeps its CSS size and position, so panning, clicks, and scrolling stay aligned.
+
+The normal device-pixel-ratio budget is capped at 2×, then multiplied by the zoom scale. To keep large canvases within GPU limits, buffers are also capped at 8192 pixels per dimension and 16 megapixels in total, or the device's lower WebGL limit. Extreme zoom can reach this quality ceiling.
+
 ## What is the same / what differs
 
 The look, motion, props, option types, and public API are the same. WebGPU needs a modern browser and adds \`vgpu\`. Both builds ship for all six frameworks, because the wrappers are shared and only the engine file differs.
@@ -215,6 +221,20 @@ export default async function RenderingPage() {
             the WebGPU component renders the wrapped content unchanged.
           </li>
         </ul>
+
+        <h2>Pinch zoom</h2>
+        <p>
+          Both renderers increase capture and rendering resolution when you pinch
+          to zoom. The HTML keeps its CSS size and position, so panning, clicks,
+          and scrolling stay aligned.
+        </p>
+        <p>
+          The normal device-pixel-ratio budget is capped at 2×, then multiplied by
+          the zoom scale. To keep large canvases within GPU limits, buffers are
+          also capped at 8192 pixels per dimension and 16 megapixels in total, or
+          the device&apos;s lower WebGL limit. Extreme zoom can reach this quality
+          ceiling.
+        </p>
 
         <h2>What is the same / what differs</h2>
         <p>

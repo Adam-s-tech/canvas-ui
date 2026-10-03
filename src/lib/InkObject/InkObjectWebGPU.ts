@@ -1,3 +1,4 @@
+import { getCanvasPixelRatio, createCanvasResizeObserver } from "../canvas-viewport";
 /*
  * WebGPU/vgpu port of InkObject. The three.js PMREM studio-room environment
  * cannot be reproduced 1:1 without the old three.js GPU backend, so this
@@ -1216,7 +1217,7 @@ export function createInkObject(
   function resize() {
     const width = Math.max(canvas.clientWidth, 1);
     const height = Math.max(canvas.clientHeight, 1);
-    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    dpr = getCanvasPixelRatio(canvas);
     fullWidth = Math.max(Math.round(width * dpr), 1);
     fullHeight = Math.max(Math.round(height * dpr), 1);
     if (screen) {
@@ -1369,7 +1370,7 @@ export function createInkObject(
   };
   motionQuery.addEventListener("change", onMotionChange);
 
-  const observer = new ResizeObserver(() => {
+  const observer = createCanvasResizeObserver(() => {
     resize();
     startLoop();
   });
